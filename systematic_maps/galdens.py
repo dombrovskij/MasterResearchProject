@@ -37,4 +37,5 @@ bc = bc/pixarea_arcmin #We want the number of objects (galaxies) per arcmin^2 fo
 print(bc[0:10]) #Just to see what it looks like
 print(bc.shape)
 
-hp.write_map("ngal.fits", bc, overwrite=True) #Save the map
+data_dir = '/disks/shear12/dombrovskij/systematic_maps/data'
+hp.write_map(data_dir+"/ngal.fits", bc, overwrite=True) #Save the map

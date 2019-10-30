@@ -81,4 +81,4 @@ def load_sys(nside):
         fname  = 'dr4_masked_'+str(col)+'_map_nside_'+str(nside)+'.fits'
         sys_arrays[:,i] = hp.fitsfunc.read_map(fname)
         i = i + 1
-    return sys_arrays	
+    return sys_arrays
