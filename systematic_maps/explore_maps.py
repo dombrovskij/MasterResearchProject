@@ -68,13 +68,16 @@ def plot_corr(pixel_data):
 
     return None
 
-def plot_ngal(ngal_norm, pixel_data, nbins, percut):
+def plot_ngal(ngal_norm, pixel_data, nbins, percut, average_mode = 'median'):
     '''
     returns a multipanel figure, with each panel 
     showing the trend between the normalized 
     gal number density and a systematic parameters
     Inputs: 
           ngal_norm = normalaized ngal,
+	  averge_mode = if 'mean', then the mean density in each bin is computed
+	                if 'median', then the median density in each bin is computed
+	  	        default: 'median'
 	  pixel_data = a dataframe with the same number of rows as 
 	  ngals, each column correspond to a systematic parameter;
 	  nbins + number of bins for making the plots
@@ -105,7 +108,7 @@ def plot_ngal(ngal_norm, pixel_data, nbins, percut):
 	    # Compute the mean of y in each bin
 	    bin_means, bin_edges, binnumber = stats.binned_statistic(x[mask],
 	    							     y[mask], 
-								     statistic = "mean",
+								     statistic = average_mode,
 								     bins = bins)
 	    
 	    # Compute the uncertainty of y in each bin							     
@@ -120,10 +123,11 @@ def plot_ngal(ngal_norm, pixel_data, nbins, percut):
             axs[i,j].set_ylabel(r"$n_{\rm gal}$")
 
             cnt+=1
+    plt.title("average mode = "+str(average_mode)+"percentile cuts="+str(percut[0])+","+str(percut[1])) 
     plt.tight_layout()
     plt.savefig(graph_dir+"sys_ngal.png")	    
         
 
 plot_hist(pixel_data)  
 plot_corr(pixel_data)  
-plot_ngal(ngal_norm, pixel_data, nbins=5, percut = [2, 98])
+plot_ngal(ngal_norm, pixel_data, nbins=5, percut = [2, 98], average_mode = "median")
