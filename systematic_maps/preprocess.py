@@ -82,6 +82,8 @@ print('Average NGAL: {}'.format(average_ngal))
 ngal_norm = masked_ngal / pixel_fraction
 ngal_norm = ngal_norm / average_ngal
 
+#Modify nstar to account for the pixel fraction
+masked_dataset['nstar'] = masked_dataset['nstar'] / pixel_fraction
 
 #Plot the healpix map
 #hp.visufunc.mollview(ngal_fits)
@@ -102,7 +104,6 @@ new_ngal_norm = np.delete(ngal_norm, rows_containing_nans[rows_containing_nans].
 print('New Length of data and ngal_norm:') #Just to check, they must be equal
 print(len(dataset_frame_filtered))
 print(len(new_ngal_norm))
-
 
 #Save the data
 with open(data_dir+'/pixel_data.pickle', 'wb') as handle:
