@@ -114,19 +114,19 @@ def plot_ngal(ngal_norm, pixel_data, nbins, percut, average_mode = 'median'):
 									     statistic = average_mode,
 									     bins = bins)
 
-			tt= pixel_data.copy()
-			tt = tt[mask]
-			tt['binnumber'] = binnumber #Add the binnumber to every pixel
-			qq = tt.groupby('binnumber').fraction.mean().reset_index(name='frac_means') #Group by binnumber and take mean fraction
+			#tt= pixel_data.copy()
+			#tt = tt[mask]
+			#tt['binnumber'] = binnumber #Add the binnumber to every pixel
+			#qq = tt.groupby('binnumber').fraction.mean().reset_index(name='frac_means') #Group by binnumber and take mean fraction
 
-			bin_means_frame = pd.DataFrame({'binnumber':np.arange(1,nbins), 'bin_means':bin_means}) #Create bin means frame for merging
+			#bin_means_frame = pd.DataFrame({'binnumber':np.arange(1,nbins), 'bin_means':bin_means}) #Create bin means frame for merging
 
-			kk = pd.merge(qq, bin_means_frame, how='left', on = 'binnumber') #Merge fraction means and bin means on binnumber
-			kk['corrected_bin_means'] = kk.bin_means / kk.frac_means #Correct the bin means
+			#kk = pd.merge(qq, bin_means_frame, how='left', on = 'binnumber') #Merge fraction means and bin means on binnumber
+			#kk['corrected_bin_means'] = kk.bin_means / kk.frac_means #Correct the bin means
 
 			#Take the corrected binmeans to be the new binmeans
-			bin_means = kk.sort_values(by='binnumber', ascending=True).corrected_bin_means.values 
-			print(bin_means)
+			#bin_means = kk.sort_values(by='binnumber', ascending=True).corrected_bin_means.values 
+			#print(bin_means)
 
 			# Compute the uncertainty of y in each bin							     
 			bin_errors, bin_edges, binnumber = stats.binned_statistic(x[mask],
@@ -136,8 +136,10 @@ def plot_ngal(ngal_norm, pixel_data, nbins, percut, average_mode = 'median'):
 			# Compute the bin centers for plotting
 			bin_centers = .5*(bin_edges[1:]+bin_edges[:-1])
 			axs[i,j].errorbar(bin_centers, bin_means, bin_errors, fmt = "o", capsize  = 2)
-			axs[i,j].set_xlabel(cols[cnt])
-			axs[i,j].set_ylabel(r"$n_{\rm gal}$")
+			axs[i,j].tick_params(axis='both', which='major', labelsize=13.5)
+
+			axs[i,j].set_xlabel(cols[cnt], fontsize=18)
+			axs[i,j].set_ylabel(r"$n_{\rm gal}/\bar{n}_{\rm gal}$", fontsize=18)
 
 			cnt+=1
 

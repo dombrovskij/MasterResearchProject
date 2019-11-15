@@ -26,6 +26,11 @@ Load all data.
 
 ngal_fits = hp.fitsfunc.read_map(data_dir+'/ngal.fits') #Read in galaxy density map (created in galdens.py)
 
+
+#Plot the healpix map
+hp.visufunc.mollview(ngal_fits)
+plt.show()
+
 dataset_dict = {} #Dictionary to store systematic maps
 
 for f_name in os.listdir(data_dir): #Go to data directory
@@ -42,12 +47,19 @@ Mask all data.
 """
 
 print('Obtaining KiDS mask...')
-pixel_mask, pixel_fraction = good_fraction(nside)
+pixel_mask, pixel_fraction = good_fraction(nside) #Returns the good pixel mask and the count of pixels
 	
 print('Pixel mask shape: {}'.format(pixel_mask.shape))
 
 masked_ngal = ngal_fits[pixel_mask] #Mask ngal
 print('Shape of masked ngal array: {}'.format(masked_ngal.shape))
+#Plot the healpix map
+temp_for_plot = ngal_fits.copy()
+mask = np.ones(temp_for_plot.shape, bool)
+mask[pixel_mask] = False
+temp_for_plot[mask] = 0
+hp.visufunc.mollview(temp_for_plot)
+plt.show()
 
 masked_dataset = {}
 for key, value in dataset_dict.items(): #Mask all systematic maps
@@ -82,16 +94,27 @@ print('Average NGAL: {}'.format(average_ngal))
 ngal_norm = masked_ngal / pixel_fraction
 ngal_norm = ngal_norm / average_ngal
 
+#Plot the healpix map
+temp_for_plot = ngal_fits.copy()
+mask = np.ones(temp_for_plot.shape, bool)
+mask[pixel_mask] = False
+temp_for_plot[mask] = 0
+temp_for_plot[pixel_mask] = temp_for_plot[pixel_mask] / pixel_fraction
+hp.visufunc.mollview(temp_for_plot)
+plt.show()
+
+temp_for_plot[pixel_mask] = temp_for_plot[pixel_mask] / average_ngal
+hp.visufunc.mollview(temp_for_plot)
+plt.show()
+
 #Modify nstar to account for the pixel fraction
 masked_dataset['nstar'] = masked_dataset['nstar'] / pixel_fraction
 
-#Plot the healpix map
-#hp.visufunc.mollview(ngal_fits)
-#plt.show()
 
 #Create pandas dataframe in which each row contains all parameters of a single pixel
 print('Creating Pandas DataFrame...')
 dataset_frame = pd.DataFrame.from_dict(masked_dataset)
+dataset_frame['fraction'] = pixel_fraction
 
 #Remove pixels that have a nan value for one or more parameters
 rows_containing_nans = dataset_frame.isnull().any(axis=1)
