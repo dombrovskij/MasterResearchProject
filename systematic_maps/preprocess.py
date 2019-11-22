@@ -17,6 +17,7 @@ are pickled to the data directory.
 """
 
 data_dir = '/disks/shear12/dombrovskij/systematic_maps/data'
+graph_dir = '/disks/shear12/dombrovskij/systematic_maps/graphs'
 nside = 256
 
 """
@@ -47,12 +48,15 @@ Mask all data.
 """
 
 print('Obtaining KiDS mask...')
-pixel_mask, pixel_fraction = good_fraction(nside) #Returns the good pixel mask and the count of pixels
+pixel_mask, pixel_fraction = good_fraction(nside) #Returns the good pixel mask and the number of good pixels in each pixel
+print(pixel_mask[0:10])
+print(pixel_fraction[0:10])
 	
 print('Pixel mask shape: {}'.format(pixel_mask.shape))
 
 masked_ngal = ngal_fits[pixel_mask] #Mask ngal
 print('Shape of masked ngal array: {}'.format(masked_ngal.shape))
+
 #Plot the healpix map
 temp_for_plot = ngal_fits.copy()
 mask = np.ones(temp_for_plot.shape, bool)
@@ -87,7 +91,19 @@ pixel_fraction = pixel_fraction / ratio #Make it an actual fraction
 average_ngal = np.sum(masked_ngal) / np.sum(pixel_fraction)
 print('Average NGAL: {}'.format(average_ngal))
 	
-	
+#Make a plot of ngal before it is normalized
+
+plt.hist(masked_ngal, bins = 100)
+plt.xlabel('Unnormalized Galaxy Density')
+plt.ylabel('Counts')
+plt.savefig(graph_dir+'/unnormalized_ngal_hist.png')
+
+plt.hist(masked_ngal, bins = 100)
+plt.xlabel('Unnormalized Galaxy Density')
+plt.ylabel('Counts')
+plt.yscale('log')
+plt.savefig(graph_dir+'/unnormalized_ngal_histlog.png')
+
 #Calculate the eventual normalized galaxy density per pixel
 #n_i / (f_i * n_avg)
 	
@@ -100,12 +116,12 @@ mask = np.ones(temp_for_plot.shape, bool)
 mask[pixel_mask] = False
 temp_for_plot[mask] = 0
 temp_for_plot[pixel_mask] = temp_for_plot[pixel_mask] / pixel_fraction
-hp.visufunc.mollview(temp_for_plot)
-plt.show()
+#hp.visufunc.mollview(temp_for_plot)
+#plt.show()
 
 temp_for_plot[pixel_mask] = temp_for_plot[pixel_mask] / average_ngal
-hp.visufunc.mollview(temp_for_plot)
-plt.show()
+#hp.visufunc.mollview(temp_for_plot)
+#plt.show()
 
 #Modify nstar to account for the pixel fraction
 masked_dataset['nstar'] = masked_dataset['nstar'] / pixel_fraction

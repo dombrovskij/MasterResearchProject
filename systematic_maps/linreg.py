@@ -4,6 +4,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import utils
+import joblib
 from scipy import stats
 from sklearn import datasets, linear_model
 from sklearn.model_selection import train_test_split
@@ -26,18 +27,22 @@ with open(data_dir+'/ngal_norm.pickle', 'rb') as handle:
 all_data = pixel_data.copy()
 all_data['ngal_norm'] = ngal_norm
 
-filtered_pixel_data = all_data.loc[all_data.fraction > 0.1]
-filtered_pixel_data = filtered_pixel_data.loc[filtered_pixel_data.ngal_norm != 0.0]
+#Set a fraction limit
+fraction_lim = 0.1
+filtered_pixel_data = all_data.loc[all_data.fraction > fraction_lim]
 
-print('New number of pixels: {}'.format(len(filtered_pixel_data)))
+print('Number of pixels before filtering: {}'.format(len(all_data)))
+print('New number of pixels after filtering: {}'.format(len(filtered_pixel_data)))
 
-use_cols = [x for x in pixel_data.columns if 'fraction' and 'ngal_norm' not in x]
+use_cols = [x for x in filtered_pixel_data.columns if x != 'fraction']
+use_cols = [x for x in use_cols if x != 'ngal_norm']
+print('Using columns: {}'.format(use_cols))
 X = filtered_pixel_data[use_cols].values
 Y = filtered_pixel_data['ngal_norm'].values
 
 X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=1)
 
-scalerx =  StandardScaler()
+scalerx =  StandardScaler() #Scale the values
 scaled_X_train = scalerx.fit_transform(X_train)
 scaled_X_test = scalerx.transform(X_test)
 
@@ -59,7 +64,6 @@ print(df1)
 
 #Scaled back predictions
 y_pred_scaled_back = scalery.inverse_transform(y_pred)
-
 df2 = pd.DataFrame.from_dict({'Actual': list(y_test), 'Predicted': list(y_pred_scaled_back)})
 print(df2.head(25))
 
@@ -74,16 +78,12 @@ print("Mean squared error: %.2f"
 # Explained variance score: 1 is perfect prediction
 print('Variance score: %.2f' % r2_score(scaled_y_test, y_pred))
 
-full_pred_temp = regr.predict(scalerx.transform(X))
-full_pred = scalery.inverse_transform(full_pred_temp)
-df3 = pd.DataFrame.from_dict({'Actual': list(Y), 'Predicted': list(full_pred)})
-print(df3.head(25))
+#Predict everything:
+full_data_scaled = scalerx.transform(X)
+full_data_predict = regr.predict(full_data_scaled)
+full_predict = scalery.inverse_transform(full_data_predict)
 
-residuals = np.array(Y) - np.array(full_pred.flatten())
 
-#plt.scatter(np.arange(len(Y)), Y, color='black')
-#plt.scatter(np.arange(len(Y)), full_pred, color='red', alpha=0.2)
-plt.scatter(np.arange(len(scaled_X_train)), scaled_y_train.flatten(), color='black')
-plt.scatter(np.arange(len(scaled_X_train)), regr.predict(scaled_X_train), color='red', alpha=0.2)
-#plt.scatter(np.arange(len(residuals)), residuals, color='red', alpha=0.5)
-plt.show()
+with open(data_dir+'/linregprediction.pickle', 'wb') as handle:
+	pickle.dump(full_predict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+

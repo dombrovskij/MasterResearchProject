@@ -23,10 +23,10 @@ with open(data_dir+'/ngal_norm.pickle', 'rb') as handle:
 print('Parameters: {}'.format(pixel_data.columns))
 
 
-def plot_ngal(Y, X):
+def plot_ngal(X,Y):
 
 
-	cols = [x for x in X.columns if 'fraction' not in x]
+	cols = X.columns
 	ncols = len(cols)
 
 	nr, nc = len(cols)/3, 3
@@ -50,66 +50,121 @@ def plot_ngal(Y, X):
 all_data = pd.DataFrame(pixel_data).copy()
 all_data['ngal_norm'] = ngal_norm
 
-filtered_pixel_data = all_data.loc[all_data.fraction > 0.1]
-filtered_pixel_data = filtered_pixel_data.loc[filtered_pixel_data.ngal_norm != 0.0]
+fraction_lim = 0.1
+filtered_pixel_data = all_data.loc[all_data.fraction > fraction_lim]
 
-use_cols = [x for x in all_data.columns if 'fraction' and 'ngal_norm' not in x]
+
+use_cols = [x for x in filtered_pixel_data.columns if x != 'fraction']
+use_cols = [x for x in use_cols if x != 'ngal_norm']
+
+#Percentile cut
+percentiles_low = np.percentile(filtered_pixel_data[use_cols], 5, axis=0)
+percentiles_high = np.percentile(filtered_pixel_data[use_cols], 95, axis=0)
+
+print(percentiles_low)
+print(percentiles_high)
+
+perc_df = pd.DataFrame([percentiles_low,percentiles_high], columns = use_cols)
+
+print(perc_df)
+
+tt = filtered_pixel_data[use_cols].apply(lambda x: x[(x>perc_df.loc[0,x.name]) & 
+                                    (x < perc_df.loc[1,x.name])], axis=0)
+
+
+qq = tt.dropna(axis=0, how='all')
+print(len(filtered_pixel_data))
+print(len(qq))
+
 X = filtered_pixel_data[use_cols]
 Y = filtered_pixel_data['ngal_norm'].values
 
-plot_ngal(Y, X)
+#plot_ngal(X,Y)
 
 '''
-
-#Get only magnitude cols
-magnitude_cols = []
-rest_cols = []
-
-for c in pixel_data.columns:
-	if 'lim' in c:
-		magnitude_cols.append(c)
-	else:
-		rest_cols.append(c)
-
-print(magnitude_cols)
-print(rest_cols)
-
-#plot_histogram(magnitude_cols, log=True)
-#plot_histogram(rest_cols, log=True)
-#plot_histogram(['threshold'], log=True)
-#plot_histogram(['BackGr'], log=True)
-#plot_histogram(['fwhm'], log=True)
-
-percentile_5 = np.percentile(pixel_data, 5, axis=0)
-percentile_95 = np.percentile(pixel_data, 95, axis=0)
-
-ylines = dict(zip(pixel_data.columns, zip(percentile_5, percentile_95)))
-
-	
-plot_subplots(cols = magnitude_cols, sharex=True, sharey=True)
-plot_subplots(cols = rest_cols, sharex=False, sharey=True)
-
-def drop_percentile(cols = [], ylines={}):
-
-	global pixel_data
-	new_data = pixel_data.copy()
-	
-	for col in cols:
-	
-		to_drop = new_data.loc[(new_data[col] < ylines[col][0]) | (ylines[col][1] < new_data[col])]
-		new_data = new_data.drop(to_drop.index).copy()
-	
-	return new_data
-	
-
-pdata_drop_all = drop_percentile(pixel_data.columns, ylines=ylines)
-
-plot_subplots(pcutdata=pdata_drop_all, cols = magnitude_cols, bins=10, sharex=True, sharey=True)
-plot_subplots(pcutdata=pdata_drop_all, cols = rest_cols, bins=10, sharex=False, sharey=True)
-
+2d histogram
 '''
 
+def plot_2dhist(X,Y, bins=100):
 
+	cols = X.columns
+	ncols = len(cols)
+
+	nr, nc = len(cols)/3, 3
+	fig, axs = plt.subplots(nrows=nr, ncols=nc, sharex=False, sharey=True, figsize=(15,10))
+	cnt = 0
+
+	for i in range(nr):
+		for j in range(nc):
+			y = Y
+			x = X[cols[cnt]]
+
+			counts, xedges, yedges, im = axs[i,j].hist2d(x,y, bins=bins)
+			plt.colorbar(im, ax=axs[i,j])
+
+
+			axs[i,j].set_xlabel(cols[cnt], fontsize=14)
+			axs[i,j].set_ylabel(r"$n_{\rm gal}/\bar{n}_{\rm gal}$", fontsize=14)
+
+			cnt += 1
+
+	plt.tight_layout()
+	fig.subplots_adjust(top=0.88)
+	plt.ylim((0,6))
+	plt.show()
+
+plot_2dhist(X,Y)
+
+with open(data_dir+'/linregprediction.pickle', 'rb') as handle:
+	linreg_pred = pickle.load(handle)
+
+
+
+linreg_pred = linreg_pred.flatten()
+print('Number of negative predictions being clipped to 0: {}'.format(len(linreg_pred[linreg_pred < 0])))
+linreg_pred[linreg_pred < 0] = 0 #clip negative predictions to 0
+
+def plot_2dpred_5(X, Y, cols, linreg_pred, figname=''):
+
+
+	ymin = 0
+	ymax = np.max([np.max(linreg_pred), np.max(Y)])
+	
+	nr, nc = 5, 2
+	fig, axs = plt.subplots(nrows = nr, ncols = nc, sharey=True, figsize=(9,15))
+	axs[0,0].set_title('True', fontsize=18)
+	axs[0,1].set_title('Predicted', fontsize=18)
+	cnt = 0
+
+	for i in range(nr):
+		for j in range(nc):
+
+			x = X[cols[cnt]].values
+
+			xmin = np.min(x)
+			xmax = np.max(x)
+			if j == 0:
+				axs[i,j].hist2d(x, Y, bins=(50,50), range = [[xmin, xmax], [ymin, ymax]])
+
+			else:
+				axs[i,j].hist2d(x,linreg_pred.flatten(), bins=(50,50), range = [[xmin, xmax], [ymin, ymax]])
+			axs[i,j].set_xlabel(cols[cnt], fontsize=12)
+		cnt+=1
+	#plt.colorbar(im, ax=ax)
+	#plt.ylim((0,5))
+	plt.tight_layout()
+	fig.subplots_adjust(top=0.88)
+	fig.savefig(graph_dir+figname)
+	plt.show()
+
+plot_2dpred_5(X, Y, use_cols[0:5], linreg_pred, figname='true_vs_pred_1.png')
+plot_2dpred_5(X, Y, use_cols[5:10], linreg_pred, figname='true_vs_pred_2.png')
+plot_2dpred_5(X, Y, use_cols[10:], linreg_pred, figname='true_vs_pred_3.png')
+
+#plot_2dpred_5(X, Y, use_cols[0:5], linreg_pred, figname='true_vs_pred_1_ylim5.png')
+#plot_2dpred_5(X, Y, use_cols[5:10], linreg_pred, figname='true_vs_pred_2_ylim5.png')
+#plot_2dpred_5(X, Y, use_cols[10:], linreg_pred, figname='true_vs_pred_3_ylim5.png')
+'''
 f, ax = plt.subplots(figsize=(9, 7))
 plt.hist(ngal_norm, bins=20, histtype= "step", lw=2, color = 'black')
 ax.set_yscale('log')
@@ -170,7 +225,7 @@ plt.tight_layout()
 plt.show()
 f4.savefig(graph_dir+'/pixel_fraction_cumulative_hist.png')
 
-
+'''
 
 
 
