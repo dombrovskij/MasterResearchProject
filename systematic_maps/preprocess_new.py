@@ -10,7 +10,7 @@ from map import *
 
 """
 This code loads the systematic maps and the galaxy density map from the data directory.
-The galaxy density map was created in galdens.py. The KiDS mask is obtained and used on all of the maps.
+The galaxy density map was created in galdens_new.py. The KiDS mask is obtained and used on all of the maps.
 The galaxy density is normalized using the pixel fraction and average galaxy density. All systematic
 maps are put into a Pandas DataFrame and that DataFrame along with the normalized galaxy density array
 are pickled to the data directory.
@@ -24,8 +24,7 @@ nside = 256
 Load all data.
 """
 
-
-ngal_fits = hp.fitsfunc.read_map(data_dir+'/ngal.fits') #Read in galaxy density map (created in galdens.py)
+ngal_fits = hp.fitsfunc.read_map(data_dir+'/ngal_new.fits') #Read in galaxy density map (created in galdens.py)
 
 
 #Plot the healpix map
@@ -57,13 +56,9 @@ print('Pixel mask shape: {}'.format(pixel_mask.shape))
 masked_ngal = ngal_fits[pixel_mask] #Mask ngal
 print('Shape of masked ngal array: {}'.format(masked_ngal.shape))
 
-#Plot the healpix map
-temp_for_plot = ngal_fits.copy()
-mask = np.ones(temp_for_plot.shape, bool)
-mask[pixel_mask] = False
-temp_for_plot[mask] = 0
-hp.visufunc.mollview(temp_for_plot)
-plt.show()
+#Save masked ngal
+with open(data_dir+'/masked_ngal.pickle', 'wb') as handle:
+	pickle.dump(masked_ngal, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 masked_dataset = {}
 for key, value in dataset_dict.items(): #Mask all systematic maps
@@ -90,19 +85,6 @@ pixel_fraction = pixel_fraction / ratio #Make it an actual fraction
 #Calculate average galaxy density
 average_ngal = np.sum(masked_ngal) / np.sum(pixel_fraction)
 print('Average NGAL: {}'.format(average_ngal))
-	
-#Make a plot of ngal before it is normalized
-
-plt.hist(masked_ngal, bins = 100)
-plt.xlabel('Unnormalized Galaxy Density')
-plt.ylabel('Counts')
-plt.savefig(graph_dir+'/unnormalized_ngal_hist.png')
-
-plt.hist(masked_ngal, bins = 100)
-plt.xlabel('Unnormalized Galaxy Density')
-plt.ylabel('Counts')
-plt.yscale('log')
-plt.savefig(graph_dir+'/unnormalized_ngal_histlog.png')
 
 #Calculate the eventual normalized galaxy density per pixel
 #n_i / (f_i * n_avg)
@@ -110,22 +92,8 @@ plt.savefig(graph_dir+'/unnormalized_ngal_histlog.png')
 ngal_norm = masked_ngal / pixel_fraction
 ngal_norm = ngal_norm / average_ngal
 
-#Plot the healpix map
-temp_for_plot = ngal_fits.copy()
-mask = np.ones(temp_for_plot.shape, bool)
-mask[pixel_mask] = False
-temp_for_plot[mask] = 0
-temp_for_plot[pixel_mask] = temp_for_plot[pixel_mask] / pixel_fraction
-#hp.visufunc.mollview(temp_for_plot)
-#plt.show()
-
-temp_for_plot[pixel_mask] = temp_for_plot[pixel_mask] / average_ngal
-#hp.visufunc.mollview(temp_for_plot)
-#plt.show()
-
 #Modify nstar to account for the pixel fraction
 masked_dataset['nstar'] = masked_dataset['nstar'] / pixel_fraction
-
 
 #Create pandas dataframe in which each row contains all parameters of a single pixel
 print('Creating Pandas DataFrame...')
@@ -134,23 +102,31 @@ dataset_frame['fraction'] = pixel_fraction
 
 #Remove pixels that have a nan value for one or more parameters
 rows_containing_nans = dataset_frame.isnull().any(axis=1)
-dataset_frame_filtered = dataset_frame[~rows_containing_nans]
+dataset_frame_filtered = dataset_frame[~rows_containing_nans].copy()
 print('Removed {} rows from DataFrame containing nans...'.format(rows_containing_nans.sum()))
 
 #Remove the same indices from the ngal_norm array
 new_ngal_norm = np.delete(ngal_norm, rows_containing_nans[rows_containing_nans].index)
 
-print('New Length of data and ngal_norm:') #Just to check, they must be equal
+new_masked_ngal = np.delete(masked_ngal, rows_containing_nans[rows_containing_nans].index)
+
+#Save masked ngal
+with open(data_dir+'/masked_ngal.pickle', 'wb') as handle:
+	pickle.dump(new_masked_ngal, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+print('NUMBER OF ZEROS:')
+print(len(np.where(new_ngal_norm == 0)[0]))
+
+print('New Length of data and ngal_norm (must be equal):') #Just to check, they must be equal
 print(len(dataset_frame_filtered))
 print(len(new_ngal_norm))
+
+dataset_frame_filtered['ngal_norm'] = new_ngal_norm
 
 #Save the data
 with open(data_dir+'/pixel_data.pickle', 'wb') as handle:
 	pickle.dump(dataset_frame_filtered, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-
-with open(data_dir+'/ngal_norm.pickle', 'wb') as handle:
-	pickle.dump(new_ngal_norm, handle, protocol=pickle.HIGHEST_PROTOCOL)
     
 print('Data saved to {}.'.format(data_dir))
+
 

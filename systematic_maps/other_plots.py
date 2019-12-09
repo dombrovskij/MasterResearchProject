@@ -15,6 +15,11 @@ graph_dir = '/disks/shear12/dombrovskij/systematic_maps/graphs/'
 with open(data_dir+'/pixel_data.pickle', 'rb') as handle:
 	pixel_data = pickle.load(handle)
 	
+with open(data_dir+'/masked_ngal.pickle', 'rb') as handle:
+	masked_ngal = pickle.load(handle)
+	
+pixel_data['ngal_norm'] = masked_ngal
+	
 print('Parameters: {}'.format(pixel_data.columns))
 
 temp = fraction_lim(pixel_data, frac_lim=0.1)
@@ -73,7 +78,8 @@ def plot_hist(pixel_data):
 	    		axs[i,j].set_ylabel("counts")
 	    		cnt+=1
 	plt.tight_layout()
-	plt.savefig(graph_dir+"data_exploration/sys_hist.png")	    
+	plt.show()
+	plt.savefig(graph_dir+"data_exploration/sys_hist_masked_ngal.png")	    
 
 	return None
 	
@@ -101,7 +107,7 @@ def plot_2dhist(X,Y, bins=100, y_lim = None):
 
 
 			axs[i,j].set_xlabel(cols[cnt], fontsize=14)
-			axs[i,j].set_ylabel(r"$n_{\rm gal}/\bar{n}_{\rm gal}$", fontsize=14)
+			axs[i,j].set_ylabel(r"$ngal$", fontsize=14)
 
 			cnt += 1
 
@@ -110,7 +116,7 @@ def plot_2dhist(X,Y, bins=100, y_lim = None):
 	
 	if y_lim:
 		plt.ylim(y_lim)
-	plt.savefig(graph_dir+"data_exploration/sys_2dhist.png")	    
+	plt.savefig(graph_dir+"data_exploration/sys_2dhist_masked_ngal.png")	    
 	plt.show()
 	
 	return None
@@ -167,7 +173,8 @@ def plot_corr(X):
 	sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0,
 	    square=True, linewidths=.5, cbar_kws={"shrink": .5})
 
-	plt.savefig(graph_dir+"data_exploration/sys_corr.png")	    
+	#plt.savefig(graph_dir+"data_exploration/sys_corr.png")
+	#plt.show()	    
 
 	return None
 
@@ -250,28 +257,29 @@ def plot_ngal(ngal_norm, pixel_data, nbins, percut, average_mode = 'median'):
 	#plt.title("average mode = "+str(average_mode)+"percentile cuts="+str(percut[0])+","+str(percut[1])) 
 	plt.tight_layout()
 	fig.subplots_adjust(top=0.88)
-	plt.savefig(graph_dir+"data_exploration/sys_ngal.png")
+	#plt.savefig(graph_dir+"data_exploration/sys_ngal.png")
+	plt.show()	  p  
         
-plot_hist_single(pixel_data['ngal_norm'], bins=20, lw=2, log=True, ylim = (10**0, 10**5), x_label=r"$n_{\rm gal}/\bar{n}_{\rm gal}$",
-	y_label = 'Count', title='ngal_hist')
+plot_hist_single(pixel_data['ngal_norm'], bins=20, lw=2, log=True, ylim = (10**0, 10**5), x_label=r"$ngal$",
+	y_label = 'Count', title='masked_ngal_hist')
 	
-plot_hist_single(pixel_data.loc[pixel_data['ngal_norm'] < 10].ngal_norm, bins=20, lw=2, log=True, ylim = (10**0, 10**5), x_label=r"$n_{\rm gal}/\bar{n}_{\rm gal}$",
-	y_label = 'Count', title='ngal_hist_zoom')
+plot_hist_single(pixel_data.loc[pixel_data['ngal_norm'] < 10].ngal_norm, bins=20, lw=2, log=True, ylim = (10**0, 10**5), x_label=r"$ngal$",
+	y_label = 'Count', title='masked_ngal_hist_zoom')
 	
-plot_hist_single(pixel_data['fraction'], bins=20, lw=2, log=True, ylim = (10**0, 10**5), x_label=r"$f_{\rm pix}$",
-	y_label = 'Count', title='pixel_fraction_hist')
+#plot_hist_single(pixel_data['fraction'], bins=20, lw=2, log=True, ylim = (10**0, 10**5), x_label=r"$f_{\rm pix}$",
+#	y_label = 'Count', title='pixel_fraction_hist')
 	
-plot_hist_single(pixel_data['fraction'], bins=20, lw=2, log=True, cumulative=True, ylim = (10**0, 10**5), x_label=r"$f_{\rm pix}$",
-	y_label = 'Count', title='pixel_fraction_cumulative_hist')
+#plot_hist_single(pixel_data['fraction'], bins=20, lw=2, log=True, cumulative=True, ylim = (10**0, 10**5), x_label=r"$f_{\rm pix}$",
+#	y_label = 'Count', title='pixel_fraction_cumulative_hist')
 	
 
 plot_scatter(pixel_data['fraction'], pixel_data['ngal_norm'], s=15, xlim = (0,1), ylim = (0,350),
-	 x_label=r"$f_{\rm pix}$", y_label=r"$n_{\rm gal}/\bar{n}_{\rm gal}$", title='ngal_vs_fraction')
+	 x_label=r"$f_{\rm pix}$", y_label=r"$ngal$", title='masked_ngal_vs_fraction')
 
 plot_scatter(pixel_data['fraction'], pixel_data['ngal_norm'], s=15, xlim = (0,0.2), ylim = (0,350),
-	 x_label=r"$f_{\rm pix}$", y_label=r"$n_{\rm gal}/\bar{n}_{\rm gal}$", title='ngal_vs_fraction_zoom')
+	 x_label=r"$f_{\rm pix}$", y_label=r"ngal$", title='masked_ngal_vs_fraction_zoom')
 	 
 plot_hist(X)  
 plot_2dhist(X,Y, bins=100, y_lim=(0,3))
-plot_corr(X)  
-plot_ngal(Y, X, nbins=5, percut = [2, 98], average_mode = "mean")
+#plot_corr(X)  
+#plot_ngal(Y, X, nbins=5, percut = [2, 98], average_mode = "mean")

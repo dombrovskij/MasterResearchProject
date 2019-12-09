@@ -10,6 +10,7 @@ from sklearn import datasets, linear_model
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.preprocessing import StandardScaler
+from filter import *
 
 #plt.switch_backend("Agg")
 
@@ -21,26 +22,22 @@ graph_dir = '/disks/shear12/dombrovskij/systematic_maps/graphs/'
 with open(data_dir+'/pixel_data.pickle', 'rb') as handle:
 	pixel_data = pickle.load(handle)
 
-with open(data_dir+'/ngal_norm.pickle', 'rb') as handle:
-	ngal_norm = pickle.load(handle)
+print('Parameters: {}'.format(pixel_data.columns))
 
-all_data = pixel_data.copy()
-all_data['ngal_norm'] = ngal_norm
+temp = fraction_lim(pixel_data, frac_lim=0.1)
 
-#Set a fraction limit
-fraction_lim = 0.1
-filtered_pixel_data = all_data.loc[all_data.fraction > fraction_lim]
+use_cols = [x for x in pixel_data.columns if (x != 'fraction') & (x != 'ngal_norm')]		
 
-print('Number of pixels before filtering: {}'.format(len(all_data)))
-print('New number of pixels after filtering: {}'.format(len(filtered_pixel_data)))
+filtered_pixel_data = percentile_cuts(temp, use_cols, low_cut=5, high_cut=95, verbose=True)
 
-use_cols = [x for x in filtered_pixel_data.columns if x != 'fraction']
-use_cols = [x for x in use_cols if x != 'ngal_norm']
-print('Using columns: {}'.format(use_cols))
-X = filtered_pixel_data[use_cols].values
+print(filtered_pixel_data.ngal_norm.describe())	
+
+X = np.array(filtered_pixel_data[use_cols].copy())
 Y = filtered_pixel_data['ngal_norm'].values
 
 X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=1)
+
+print('First ten y_train: {}'.format(y_train[0:10]))
 
 scalerx =  StandardScaler() #Scale the values
 scaled_X_train = scalerx.fit_transform(X_train)
@@ -49,6 +46,8 @@ scaled_X_test = scalerx.transform(X_test)
 scalery =  StandardScaler()
 scaled_y_train = scalery.fit_transform(y_train.reshape(-1,1))
 scaled_y_test = scalery.transform(y_test.reshape(-1,1))
+
+print('First ten y_train after scaling {}'.format(scaled_y_train[0:10]))
 
 # Create linear regression object
 regr = linear_model.LinearRegression()
@@ -59,14 +58,18 @@ regr.fit(scaled_X_train, scaled_y_train)
 # Make predictions using the testing set
 y_pred = regr.predict(scaled_X_test)
 df = pd.DataFrame.from_dict({'Actual': list(scaled_y_test), 'Predicted': list(y_pred)})
-df1 = df.head(25)
+df1 = df[1000:1050]
 print(df1)
 
 #Scaled back predictions
 y_pred_scaled_back = scalery.inverse_transform(y_pred)
 df2 = pd.DataFrame.from_dict({'Actual': list(y_test), 'Predicted': list(y_pred_scaled_back)})
-print(df2.head(25))
+print(df2[1000:1050])
 
+print(np.min(y_test))
+print(np.max(y_test))
+print(np.min(y_pred_scaled_back))
+print(np.max(y_pred_scaled_back))
 
 # The coefficients
 #print('Coefficients: \n', regr.coef_)
