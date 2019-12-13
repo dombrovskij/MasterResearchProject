@@ -272,6 +272,6 @@ plot_scatter(pixel_data['fraction'], pixel_data['ngal_norm'], s=15, xlim = (0,0.
 	 x_label=r"$f_{\rm pix}$", y_label=r"$n_{\rm gal}/\bar{n}_{\rm gal}$", title='ngal_vs_fraction_zoom')
 	 
 plot_hist(X)  
-plot_2dhist(X,Y, bins=100, y_lim=(0,3))
+plot_2dhist(X,Y, bins=100)
 plot_corr(X)  
 plot_ngal(Y, X, nbins=5, percut = [2, 98], average_mode = "mean")

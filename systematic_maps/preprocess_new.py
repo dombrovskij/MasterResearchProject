@@ -34,13 +34,13 @@ plt.show()
 dataset_dict = {} #Dictionary to store systematic maps
 
 for f_name in os.listdir(data_dir): #Go to data directory
-	if f_name.startswith('dr4'): #Read only systematic maps
+	if (f_name.startswith('dr4')) & (f_name.endswith('_new.fits')): #Read only systematic maps
 	
 		parameter_name = f_name.split('_')[2]
 		parameter_array = hp.fitsfunc.read_map(data_dir+'/'+f_name)
 		
 		dataset_dict[parameter_name] = parameter_array
-			
+	
 
 """
 Mask all data.

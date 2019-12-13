@@ -65,7 +65,7 @@ def plot_2dpred_5(X, Y, cols, linreg_pred, figname=''):
 			axs[i,j].set_xlabel(cols[cnt], fontsize=12)
 		cnt+=1
 	#plt.colorbar(im, ax=ax)
-	plt.ylim((0,5))
+	#plt.ylim((0,5))
 	plt.tight_layout()
 	fig.subplots_adjust(top=0.88)
 	fig.savefig(graph_dir+'/model_results/'+figname)

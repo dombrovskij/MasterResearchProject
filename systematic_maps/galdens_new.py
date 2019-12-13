@@ -15,7 +15,7 @@ data_DEC = np.array(data['DEC'])
 
 
 #Removed, was in old version
-#data_RA[data_RA > 300] = 360 - data_RA[data_RA > 300] #Correct for 'wrap around'?
+data_RA[data_RA > 300] = data_RA[data_RA > 300] - 360 #Correct for 'wrap around'
 
 nside = 256
 npix = hp.nside2npix(nside) #Get total number of pixels in map
@@ -27,7 +27,8 @@ print('4096 resolution avg obj per pixel: {}'.format(float(len(data_RA))/float(h
 print('256 resolution avg obj per pixel: {}'.format(float(len(data_RA))/float(npix)))
 
 theta = (90.0 - data_DEC) * np.pi/180.0 #Convert DEC and RA to angles on the sky
-phi = (360.- data_RA) * np.pi/180.0
+#phi = (360.- data_RA) * np.pi/180.0
+phi = data_RA * np.pi/180.0
 
 ipix = hp.ang2pix(nside, theta, phi, nest=False) #Convert the angles to which pixel it is on the map
 bc = np.bincount(ipix, minlength=npix) #returns how many 0, how many 1, how many 2, etc., so essentially counts the objects per pixel
