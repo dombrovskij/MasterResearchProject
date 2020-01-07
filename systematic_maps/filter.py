@@ -2,9 +2,14 @@ import numpy as np
 import pickle
 import pandas as pd
 
+'''
+These functions are used in other programs.
+'''
+
 def fraction_lim(frame, frac_lim = 0):
 	
 	"""
+	
 	Input:
 		frame = Pandas DataFrame at least containing column 'fraction'
 		frac_lim = The lower limit of the fraction

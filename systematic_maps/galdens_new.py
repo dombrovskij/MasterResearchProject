@@ -4,20 +4,22 @@ import fitsio
 import h5py
 import matplotlib.pyplot as plt
 
+'''
+This code creates the galaxy density map from the RA and DEC data of the galaxies.
+'''
+
 filename = 'data/shear_dr4.h5'
 
 data = h5py.File(filename, 'r') #read file
 print(data.keys())
 
-
 data_RA = np.array(data['RA'])
 data_DEC = np.array(data['DEC'])
 
-
 #Removed, was in old version
-data_RA[data_RA > 300] = data_RA[data_RA > 300] - 360 #Correct for 'wrap around'
+data_RA[data_RA > 300] = data_RA[data_RA > 300] - 360 #Correct for 'wrap around', RA between 300 and 360 get mapped to range -60 to 0.
 
-nside = 256
+nside = 256 
 npix = hp.nside2npix(nside) #Get total number of pixels in map
 
 print('Total number of pixels in 4096 resolution: {}'.format(hp.nside2npix(4096)))
@@ -27,7 +29,6 @@ print('4096 resolution avg obj per pixel: {}'.format(float(len(data_RA))/float(h
 print('256 resolution avg obj per pixel: {}'.format(float(len(data_RA))/float(npix)))
 
 theta = (90.0 - data_DEC) * np.pi/180.0 #Convert DEC and RA to angles on the sky
-#phi = (360.- data_RA) * np.pi/180.0
 phi = data_RA * np.pi/180.0
 
 ipix = hp.ang2pix(nside, theta, phi, nest=False) #Convert the angles to which pixel it is on the map

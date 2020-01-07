@@ -7,6 +7,11 @@ import utils
 from scipy import stats
 from filter import *
 
+'''
+This code plots a bunch of explorative plots. Elements that are plotted are, amongst others, histogram distributions of systematic parameters, 2D histograms of ngal vs. a systematic parameter, 
+a correlation plot, the binned ngal vs. systematic parameter plots.
+'''
+
 #data_dir = utils.dat_dir()
 data_dir = '/disks/shear12/dombrovskij/systematic_maps/data/'
 #graph_dir = utils.fig_dir()
@@ -14,22 +19,25 @@ graph_dir = '/disks/shear12/dombrovskij/systematic_maps/graphs/'
 
 with open(data_dir+'/pixel_data.pickle', 'rb') as handle:
 	pixel_data = pickle.load(handle)
-	
+	 
 print('Parameters: {}'.format(pixel_data.columns))
 
-temp = fraction_lim(pixel_data, frac_lim=0.1)
+temp = fraction_lim(pixel_data, frac_lim=0.1) #Only use pixels with fraction higher than 0.1
 
 use_cols = [x for x in pixel_data.columns if (x != 'fraction') & (x != 'ngal_norm')]		
-
-filtered_pixel_data = percentile_cuts(temp, use_cols, low_cut=5, high_cut=95, verbose=True)	
-
+ 
+filtered_pixel_data = percentile_cuts(temp, use_cols, low_cut=5, high_cut=95, verbose=True) #Perform percentile cuts on all use_cols (currently doesn't remove any datapoints)	
 
 X = filtered_pixel_data[use_cols].copy()
 Y = filtered_pixel_data['ngal_norm'].values
 
 print('Number of zeros: {}'.format(len(np.where(Y==0)[0])))
 
-def plot_hist_single(data, bins=20, lw=2, log=False, ylim = None, cumulative = False, x_label='', y_label='', title='temp'):
+def plot_hist_single(data, bins=20, lw=2, log=False, ylim = None, cumulative = False, x_label='', y_label='', title=None):
+
+	'''
+	Plot a single histogram of the input data (should contain only 1 parameter).
+	'''
 
 	f, ax = plt.subplots(figsize=(9,7))
 	
@@ -49,15 +57,18 @@ def plot_hist_single(data, bins=20, lw=2, log=False, ylim = None, cumulative = F
 	
 	plt.tight_layout()
 	plt.show()
-	f.savefig(graph_dir+'data_exploration/'+title+'.png')
+	if title:
+		f.savefig(graph_dir+'data_exploration/'+title+'.png')
 	
 	return None
 
 def plot_hist(pixel_data):
+
 	'''
 	returns a multi-panel panel plot with each panel showing 
 	the histogram of a systematic parameter
 	'''
+	
 	#cols = [x for x in pixel_data.columns if 'fraction' not in x]
 	cols = pixel_data.columns
 	ncols = len(cols)
@@ -78,6 +89,7 @@ def plot_hist(pixel_data):
 	return None
 	
 def plot_2dhist(X,Y, bins=100, y_lim = None):
+
 	'''
 	Returns a multi-panel plot with each panel showing the 2d histogram of a systematic parameter
 	with the normalized galaxy density
@@ -117,6 +129,10 @@ def plot_2dhist(X,Y, bins=100, y_lim = None):
 	
 def plot_scatter(X,Y, s=15, xlim = None, ylim = None, x_label='', y_label='', title='temp'):
 
+	'''
+	Creates scatterplot of Y vs. X. 
+	'''
+
 	f, ax = plt.subplots(figsize=(9,7))
 	
 	plt.scatter(X, Y, s=s, color='black')
@@ -141,14 +157,13 @@ def plot_scatter(X,Y, s=15, xlim = None, ylim = None, x_label='', y_label='', ti
 
 def plot_corr(X):
 
+
 	'''
 	returns a correlation matrix 
 	of the systematic parameters
 	input: pixel_data
 	'''
 	
-	#df = pd.DataFrame(pixel_data, columns = pixel_data.columns) #convert to a panda dataframe
-	#df = df[[x for x in pixel_data.columns if 'fraction' not in x]]
 	corr = X.corr() #compute the correlation matrix
 
 	plt.figure(figsize=(10, 10))
@@ -178,7 +193,7 @@ def plot_ngal(ngal_norm, pixel_data, nbins, percut, average_mode = 'median'):
 	showing the trend between the normalized 
 	gal number density and a systematic parameters
 	Inputs: 
-	  ngal_norm = normalaized ngal,
+	  ngal_norm = normalized ngal,
 	  averge_mode = if 'mean', then the mean density in each bin is computed
 		        if 'median', then the median density in each bin is computed
 	  	        default: 'median'
@@ -217,20 +232,6 @@ def plot_ngal(ngal_norm, pixel_data, nbins, percut, average_mode = 'median'):
 									     statistic = average_mode,
 									     bins = bins)
 
-			#tt= pixel_data.copy()
-			#tt = tt[mask]
-			#tt['binnumber'] = binnumber #Add the binnumber to every pixel
-			#qq = tt.groupby('binnumber').fraction.mean().reset_index(name='frac_means') #Group by binnumber and take mean fraction
-
-			#bin_means_frame = pd.DataFrame({'binnumber':np.arange(1,nbins), 'bin_means':bin_means}) #Create bin means frame for merging
-
-			#kk = pd.merge(qq, bin_means_frame, how='left', on = 'binnumber') #Merge fraction means and bin means on binnumber
-			#kk['corrected_bin_means'] = kk.bin_means / kk.frac_means #Correct the bin means
-
-			#Take the corrected binmeans to be the new binmeans
-			#bin_means = kk.sort_values(by='binnumber', ascending=True).corrected_bin_means.values 
-			#print(bin_means)
-
 			# Compute the uncertainty of y in each bin							     
 			bin_errors, bin_edges, binnumber = stats.binned_statistic(x[mask],
 									     y[mask], 
@@ -250,7 +251,10 @@ def plot_ngal(ngal_norm, pixel_data, nbins, percut, average_mode = 'median'):
 	#plt.title("average mode = "+str(average_mode)+"percentile cuts="+str(percut[0])+","+str(percut[1])) 
 	plt.tight_layout()
 	fig.subplots_adjust(top=0.88)
-	plt.savefig(graph_dir+"data_exploration/sys_ngal.png")
+	fig.savefig(graph_dir+"data_exploration/sys_ngal.png")
+	
+	
+#--Plot Everything--
         
 plot_hist_single(pixel_data['ngal_norm'], bins=20, lw=2, log=True, ylim = (10**0, 10**5), x_label=r"$n_{\rm gal}/\bar{n}_{\rm gal}$",
 	y_label = 'Count', title='ngal_hist')
