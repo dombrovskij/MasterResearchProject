@@ -114,7 +114,7 @@ def plot_2dpred_5(X, Y, cols, linreg_pred, figname=''):
 #plot_2dpred_5(X, Y, use_cols[5:10], linreg_pred, figname='true_vs_pred_2.png')
 #plot_2dpred_5(X, Y, use_cols[10:], linreg_pred, figname='true_vs_pred_3.png')
 
-def plot_ngal(ngal_pred, ngal_norm, pixel_data, nbins, percut, average_mode = 'median'):
+def plot_ngal(ngal_pred, ngal_norm, pixel_data, pixel_fraction, nbins, percut, average_mode = 'median'):
 
 	'''
 	returns a multipanel figure, with each panel 
@@ -147,7 +147,8 @@ def plot_ngal(ngal_pred, ngal_norm, pixel_data, nbins, percut, average_mode = 'm
 			y_t = ngal_pred
 			y = ngal_norm
 			x = pixel_data[cols[cnt]]
-
+			z = pixel_fraction
+			
 			# Compute the upper and lower percentile cuts
 			percs = np.percentile(x, [percut[0], percut[1]])
 
@@ -180,6 +181,25 @@ def plot_ngal(ngal_pred, ngal_norm, pixel_data, nbins, percut, average_mode = 'm
 										y[mask]/y_t[mask],
 										statistic = stats.sem,
 										bins = bins)
+			
+			#Compute mean of z in each bin
+			bin_fmeans, bin_edges, binnumber = stats.binned_statistic(x[mask],
+										z[mask],
+										statistic = average_mode,
+										bins = bins)
+			
+			# Compute the normalization factors
+			nghat_new = np.sum(y[mask]/y_t[mask])*1./np.sum(z[mask])
+			nghat_old = np.sum(y[mask])*1./np.sum(z[mask])
+			
+			#Modify the means and the errorbars of the raw measurements
+			bin_means = bin_means/nghat_old/bin_fmeans
+			bin_errors = bin_errors/nghat_old/bin_fmeans
+			
+			#Modify the means and the errorbars of the corrected measurements
+			bin_means_corr = bin_means_corr/nghat_new/bin_fmeans
+			bin_errors_corr = bin_errors_corr/nghat_new/bin_fmeans
+			
 			# Compute the bin centers for plotting
 			bin_centers = .5*(bin_edges[1:]+bin_edges[:-1])
 			axs[i,j].plot(bin_centers, bin_means, ls='--', color='C0')
