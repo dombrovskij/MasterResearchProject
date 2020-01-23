@@ -24,7 +24,7 @@ nside = 256
 Load all data.
 """
 
-ngal_fits = hp.fitsfunc.read_map(data_dir+'/ngal_new.fits') #Read in galaxy density map (created in galdens.py)
+ngal_fits = hp.fitsfunc.read_map(data_dir+'/ngal_maps/ngal_new.fits') #Read in galaxy density map (created in galdens.py)
 
 
 #Plot the healpix map
@@ -33,11 +33,11 @@ plt.show()
 
 dataset_dict = {} #Dictionary to store systematic maps
 
-for f_name in os.listdir(data_dir): #Go to data directory
+for f_name in os.listdir(data_dir+'/maps/'): #Go to data directory
 	if (f_name.startswith('dr4')) & (f_name.endswith('_new.fits')): #Read only systematic maps
 	
 		parameter_name = f_name.split('_')[2]
-		parameter_array = hp.fitsfunc.read_map(data_dir+'/'+f_name)
+		parameter_array = hp.fitsfunc.read_map(data_dir+'/maps/'+f_name)
 		
 		dataset_dict[parameter_name] = parameter_array
 	
@@ -55,6 +55,7 @@ print('Pixel mask shape: {}'.format(pixel_mask.shape))
 
 masked_ngal = ngal_fits[pixel_mask] #Mask ngal
 print('Shape of masked ngal array: {}'.format(masked_ngal.shape))
+print('Max ngal in masked_ngal: {}'.format(np.max(masked_ngal)))
 
 #Save masked ngal
 with open(data_dir+'/masked_ngal.pickle', 'wb') as handle:
@@ -120,6 +121,9 @@ print(len(np.where(new_ngal_norm == 0)[0]))
 print('New Length of data and ngal_norm (must be equal):') #Just to check, they must be equal
 print(len(dataset_frame_filtered))
 print(len(new_ngal_norm))
+
+print('Max ngal in ngal_norm: {}'.format(np.max(new_ngal_norm)))
+
 
 dataset_frame_filtered['ngal_norm'] = new_ngal_norm
 

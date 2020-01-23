@@ -26,10 +26,11 @@ temp = fraction_lim(pixel_data, frac_lim=0.1) #Only use pixels with fraction hig
 
 use_cols = [x for x in pixel_data.columns if (x != 'fraction') & (x != 'ngal_norm')]		
  
-filtered_pixel_data = percentile_cuts(temp, use_cols, low_cut=5, high_cut=95, verbose=True) #Perform percentile cuts on all use_cols (currently doesn't remove any datapoints)	
+#filtered_pixel_data = percentile_cuts(temp, use_cols, low_cut=5, high_cut=95, verbose=True) #Perform percentile cuts on all use_cols (currently doesn't remove any datapoints)	
 
-X = filtered_pixel_data[use_cols].copy()
-Y = filtered_pixel_data['ngal_norm'].values
+X = pixel_data[use_cols].copy()
+Y = pixel_data['ngal_norm'].values
+Z = pixel_data['fraction'].values
 
 print('Number of zeros: {}'.format(len(np.where(Y==0)[0])))
 
@@ -166,8 +167,6 @@ def plot_corr(X):
 	
 	corr = X.corr() #compute the correlation matrix
 
-	plt.figure(figsize=(10, 10))
-
 	# Generate a mask for the upper triangle
 	mask = np.zeros_like(corr, dtype=np.bool)
 	mask[np.triu_indices_from(mask)] = True
@@ -182,11 +181,11 @@ def plot_corr(X):
 	sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0,
 	    square=True, linewidths=.5, cbar_kws={"shrink": .5})
 
-	plt.savefig(graph_dir+"data_exploration/sys_corr.png")	    
+	f.savefig(graph_dir+"data_exploration/sys_corr.png")	    
 
 	return None
 
-def plot_ngal(ngal_norm, pixel_data, nbins, percut, average_mode = 'median'):
+def plot_ngal(ngal_norm, pixel_data, pixel_fraction, nbins, percut, average_mode = 'median', title=None):
 
 	'''
 	returns a multipanel figure, with each panel 
@@ -204,7 +203,6 @@ def plot_ngal(ngal_norm, pixel_data, nbins, percut, average_mode = 'median'):
 	  percentile cuts to be applied to the systematic parameters
 	'''
 	
-	#cols = [x for x in pixel_data.columns if 'fraction' not in x]\
 	cols = pixel_data.columns
 	ncols = len(cols)
 
@@ -216,6 +214,7 @@ def plot_ngal(ngal_norm, pixel_data, nbins, percut, average_mode = 'median'):
 
 			y = ngal_norm
 			x = pixel_data[cols[cnt]]
+			z = pixel_fraction
 
 			# Compute the upper and lower percentile cuts
 			percs = np.percentile(x, [percut[0], percut[1]])
@@ -237,11 +236,27 @@ def plot_ngal(ngal_norm, pixel_data, nbins, percut, average_mode = 'median'):
 									     y[mask], 
 									     statistic = stats.sem,
 									     bins = bins)
+									     
+			#Compute mean of z in each bin
+			bin_fmeans, bin_edges, binnumber = stats.binned_statistic(x[mask],
+										z[mask],
+										statistic = average_mode,
+										bins = bins)
+			
+			#Compute normalization factor
+			nghat = np.sum(y[mask])*1./np.sum(z[mask])
+			
+			#Modify the means and the errorbars
+			bin_means = bin_means/nghat/bin_fmeans
+			bin_errors = bin_errors/nghat/bin_fmeans
+						
 			# Compute the bin centers for plotting
 			bin_centers = .5*(bin_edges[1:]+bin_edges[:-1])
-			axs[i,j].errorbar(bin_centers, bin_means, bin_errors, fmt = "o", capsize  = 2)
+			
+			axs[i,j].plot(bin_centers, bin_means, ls='--', color='C0')
+			axs[i,j].errorbar(bin_centers, bin_means, bin_errors, fmt = "o", capsize  = 2, color='C0')
 			axs[i,j].tick_params(axis='both', which='major', labelsize=13.5)
-
+			
 			axs[i,j].set_xlabel(cols[cnt], fontsize=18)
 			axs[i,j].set_ylabel(r"$n_{\rm gal}/\bar{n}_{\rm gal}$", fontsize=18)
 
@@ -251,10 +266,16 @@ def plot_ngal(ngal_norm, pixel_data, nbins, percut, average_mode = 'median'):
 	#plt.title("average mode = "+str(average_mode)+"percentile cuts="+str(percut[0])+","+str(percut[1])) 
 	plt.tight_layout()
 	fig.subplots_adjust(top=0.88)
-	fig.savefig(graph_dir+"data_exploration/sys_ngal.png")
+	
+	if title:
+		fig.savefig(graph_dir+"data_exploration/"+title+".png")
+	else:
+		plt.show()
 	
 	
 #--Plot Everything--
+'''
+print('Plotting plots with whole dataset...')
         
 plot_hist_single(pixel_data['ngal_norm'], bins=20, lw=2, log=True, ylim = (10**0, 10**5), x_label=r"$n_{\rm gal}/\bar{n}_{\rm gal}$",
 	y_label = 'Count', title='ngal_hist')
@@ -278,4 +299,36 @@ plot_scatter(pixel_data['fraction'], pixel_data['ngal_norm'], s=15, xlim = (0,0.
 plot_hist(X)  
 plot_2dhist(X,Y, bins=100)
 plot_corr(X)  
-plot_ngal(Y, X, nbins=5, percut = [2, 98], average_mode = "mean")
+
+'''
+#plot_ngal(Y, X, Z, nbins=5, percut = [2, 98], average_mode = "mean", title='sys_ngal')
+plot_ngal(Y, X, Z, nbins=5, percut = [2, 98], average_mode = "mean")
+
+'''
+
+#-- Plots for the z-bins --
+
+with open(data_dir+'/zbins.pickle', 'rb') as handle:
+	zbins = pickle.load(handle)
+	
+#zbin_data = {}
+print('Plotting plots of zbins...')
+
+for k in zbins.keys():
+
+	zbin_min = str(zbins[k]['min']).replace('.','')
+	zbin_max = str(zbins[k]['max']).replace('.','')
+	
+	
+	with open(data_dir+'/pixel_data_'+zbin_min+'_'+zbin_max+'.pickle', 'rb') as handle:
+		zbin_data = pickle.load(handle)
+	
+	X_zbin = zbin_data[use_cols].copy()
+	Y_zbin = zbin_data['ngal_norm'].values
+	Z_zbin = zbin_data['fraction'].values
+	
+	fig_title = 'sys_ngal_'+zbin_min+'_'+zbin_max
+	plot_ngal(Y_zbin, X_zbin, Z_zbin, nbins=5, percut = [2,98], title=fig_title)
+		
+	
+'''

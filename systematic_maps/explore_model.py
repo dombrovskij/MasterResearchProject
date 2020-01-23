@@ -24,19 +24,25 @@ temp = fraction_lim(pixel_data, frac_lim=0.1) #Use only pixels with a fraction h
 
 use_cols = [x for x in pixel_data.columns if (x != 'fraction') & (x != 'ngal_norm')]		
 
-filtered_pixel_data = percentile_cuts(temp, use_cols, low_cut=5, high_cut=95, verbose=True) #Do percentile cuts on use_cols (currently does not remove any datapoints)	
+#filtered_pixel_data = percentile_cuts(temp, use_cols, low_cut=5, high_cut=95, verbose=True) #Do percentile cuts on use_cols (currently does not remove any datapoints)	
 
-X = filtered_pixel_data[use_cols].copy()
-Y = filtered_pixel_data['ngal_norm'].values
+#X = filtered_pixel_data[use_cols].copy()
+#Y = filtered_pixel_data['ngal_norm'].values
 
+X = pixel_data[use_cols].copy()
+Y = pixel_data['ngal_norm'].values
+Z = pixel_data['fraction'].values
 
 #Load the model predictions
-with open(data_dir+'/linregprediction.pickle', 'rb') as handle:
+with open(data_dir+'/model_predictions/linregprediction.pickle', 'rb') as handle:
 	linreg_pred = pickle.load(handle)
 
 linreg_pred = linreg_pred.flatten()
 print('Number of negative predictions being clipped to 0: {}'.format(len(linreg_pred[linreg_pred < 0])))
 linreg_pred[linreg_pred < 0] = 0 #clip negative predictions to 0
+
+print('Max Y: {}'.format(np.max(Y)))
+print('Max linreg: {}'.format(np.max(linreg_pred)))
 
 def plot_hist_single(data, bins=20, lw=2, log=False, ylim = None, cumulative = False, x_label='', y_label='', figname=None):
 
@@ -71,7 +77,7 @@ plot_hist_single(linreg_pred, bins=20, lw=2, log=True, ylim = (10**0, 10**5), x_
 	y_label = 'Count', figname='predicted_ngal_hist.png')	
 
 
-def plot_2dpred_5(X, Y, cols, linreg_pred, figname=''):
+def plot_2dpred_5(X, Y, cols, linreg_pred, figname=None):
 
 	'''
 	Returns panel plot of 5 rows 2 columns containing 10 2D histograms. Each row has the 2D histogram of the true distribution of ngal vs. a specific parameter, on the right the
@@ -107,14 +113,17 @@ def plot_2dpred_5(X, Y, cols, linreg_pred, figname=''):
 	#plt.ylim((0,5))
 	plt.tight_layout()
 	fig.subplots_adjust(top=0.88)
-	fig.savefig(graph_dir+'/model_results/'+figname)
-	plt.show()
+	
+	if figname:
+		fig.savefig(graph_dir+'/model_results/'+figname)
+	else:
+		plt.show()
 
 #plot_2dpred_5(X, Y, use_cols[0:5], linreg_pred, figname='true_vs_pred_1.png')
 #plot_2dpred_5(X, Y, use_cols[5:10], linreg_pred, figname='true_vs_pred_2.png')
 #plot_2dpred_5(X, Y, use_cols[10:], linreg_pred, figname='true_vs_pred_3.png')
 
-def plot_ngal(ngal_pred, ngal_norm, pixel_data, pixel_fraction, nbins, percut, average_mode = 'median'):
+def plot_ngal(ngal_pred, ngal_norm, pixel_data, pixel_fraction, nbins, percut, average_mode = 'median', title=None):
 
 	'''
 	returns a multipanel figure, with each panel 
@@ -218,9 +227,53 @@ def plot_ngal(ngal_pred, ngal_norm, pixel_data, pixel_fraction, nbins, percut, a
 	#plt.title("average mode = "+str(average_mode)+"percentile cuts="+str(percut[0])+","+str(percut[1])) 
 	plt.tight_layout()
 	fig.subplots_adjust(top=0.88)
-	plt.show()
-	fig.savefig(graph_dir+"/model_results/sys_ngal_corr.png")
+	
+	if title:
+		fig.savefig(graph_dir+"/model_results/"+title+".png")
+	else:
+		plt.show()
 	
 	
-plot_ngal(linreg_pred, Y, X, nbins=5, percut = [2, 98], average_mode = "mean")
+#plot_ngal(linreg_pred, Y, X, Z, nbins=5, percut = [2, 98], average_mode = "mean", title='sys_ngal_corr')
+plot_ngal(linreg_pred, Y, X, Z, nbins=5, percut = [2, 98], average_mode = "mean")
 
+#-- Plots for the z-bins --
+'''
+with open(data_dir+'/zbins.pickle', 'rb') as handle:
+	zbins = pickle.load(handle)
+	
+#zbin_data = {}
+print('Plotting plots of zbins...')
+
+for k in zbins.keys():
+
+	zbin_min = str(zbins[k]['min']).replace('.','')
+	zbin_max = str(zbins[k]['max']).replace('.','')
+	
+	
+	with open(data_dir+'/pixel_data_'+zbin_min+'_'+zbin_max+'.pickle', 'rb') as handle:
+		zbin_data = pickle.load(handle)
+	
+	X_zbin = zbin_data[use_cols].copy()
+	Y_zbin = zbin_data['ngal_norm'].values
+	Z_zbin = zbin_data['fraction'].values
+	
+	#Load the model predictions
+	with open(data_dir+'/model_predictions/linregprediction_'+zbin_min+'_'+zbin_max+'.pickle', 'rb') as handle:
+		linreg_pred_zbin = pickle.load(handle)
+
+	linreg_pred_zbin = linreg_pred_zbin.flatten()
+	print('Number of negative predictions being clipped to 0.0001: {}'.format(len(linreg_pred_zbin[linreg_pred_zbin < 0])))
+	linreg_pred_zbin[linreg_pred_zbin < 0] = 0.0001 #clip negative predictions to 0.0001
+	
+	print('Max Y: {}'.format(np.max(Y_zbin)))
+	print('Max linreg: {}'.format(np.max(linreg_pred_zbin)))
+	
+	plot_hist_single(linreg_pred_zbin, bins=20, lw=2, log=True, ylim = (10**0, 10**5), x_label=r"$Predicted\ n_{\rm gal}/\bar{n}_{\rm gal}$",
+	y_label = 'Count', figname='predicted_ngal_hist_'+zbin_min+'_'+zbin_max+'.png')
+	
+	fig_title = 'sys_ngal_corr_'+zbin_min+'_'+zbin_max
+	plot_ngal(linreg_pred_zbin, Y_zbin, X_zbin, Z_zbin, nbins=5, percut = [2,98], title=fig_title)
+	
+	#plot_2dpred_5(X_zbin, Y_zbin, use_cols[0:5], linreg_pred_zbin)
+'''
