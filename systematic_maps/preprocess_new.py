@@ -57,10 +57,6 @@ masked_ngal = ngal_fits[pixel_mask] #Mask ngal
 print('Shape of masked ngal array: {}'.format(masked_ngal.shape))
 print('Max ngal in masked_ngal: {}'.format(np.max(masked_ngal)))
 
-#Save masked ngal
-with open(data_dir+'/masked_ngal.pickle', 'wb') as handle:
-	pickle.dump(masked_ngal, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
 masked_dataset = {}
 for key, value in dataset_dict.items(): #Mask all systematic maps
 
@@ -112,7 +108,7 @@ new_ngal_norm = np.delete(ngal_norm, rows_containing_nans[rows_containing_nans].
 new_masked_ngal = np.delete(masked_ngal, rows_containing_nans[rows_containing_nans].index)
 
 #Save masked ngal
-with open(data_dir+'/masked_ngal.pickle', 'wb') as handle:
+with open(data_dir+'/ngal_maps/masked_ngal.pickle', 'wb') as handle:
 	pickle.dump(new_masked_ngal, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 print('NUMBER OF ZEROS:')
@@ -124,8 +120,9 @@ print(len(new_ngal_norm))
 
 print('Max ngal in ngal_norm: {}'.format(np.max(new_ngal_norm)))
 
-
 dataset_frame_filtered['ngal_norm'] = new_ngal_norm
+
+print('NGAL NORM: {}'.format(dataset_frame_filtered.ngal_norm.values[0:10]))
 
 #Save the data
 with open(data_dir+'/pixel_data.pickle', 'wb') as handle:

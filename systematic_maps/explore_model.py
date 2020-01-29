@@ -67,14 +67,17 @@ def plot_hist_single(data, bins=20, lw=2, log=False, ylim = None, cumulative = F
 	plt.ylabel(y_label, fontsize=18)
 	
 	plt.tight_layout()
-	plt.show()
+	
 	if figname:
 		f.savefig(graph_dir+'/model_results/'+figname)
+		
+	else:
+		plt.show()
 	
 	return None
 	
-plot_hist_single(linreg_pred, bins=20, lw=2, log=True, ylim = (10**0, 10**5), x_label=r"$Predicted\ n_{\rm gal}/\bar{n}_{\rm gal}$",
-	y_label = 'Count', figname='predicted_ngal_hist.png')	
+#plot_hist_single(linreg_pred, bins=20, lw=2, log=True, ylim = (10**0, 10**5), x_label=r"$Predicted\ n_{\rm gal}/\bar{n}_{\rm gal}$",
+#	y_label = 'Count', figname='predicted_ngal_hist.png')	
 
 
 def plot_2dpred_5(X, Y, cols, linreg_pred, figname=None):
@@ -165,7 +168,12 @@ def plot_ngal(ngal_pred, ngal_norm, pixel_data, pixel_fraction, nbins, percut, a
 			mask = (x>percs[0])&(x<percs[1])
 
 			# Define the bins at which the mean of y is computed
-			bins = np.linspace(x[mask].min(), x[mask].max(), nbins)
+			#bins = np.linspace(x[mask].min(), x[mask].max(), nbins)
+			
+			syst_cumsum = np.cumsum(np.sort(x) + np.abs(x.min()))
+			syst_cumsum /= 1.*syst_cumsum.max()
+			fr = np.linspace(percut[0], percut[1], nbins+1) * 0.01
+			bins = np.interp(fr, syst_cumsum, np.sort(x))
 
 			# Compute the mean of y in each bin
 			bin_means, bin_edges, binnumber = stats.binned_statistic(x[mask],
@@ -198,16 +206,16 @@ def plot_ngal(ngal_pred, ngal_norm, pixel_data, pixel_fraction, nbins, percut, a
 										bins = bins)
 			
 			# Compute the normalization factors
-			nghat_new = np.sum(y[mask]/y_t[mask])*1./np.sum(z[mask])
-			nghat_old = np.sum(y[mask])*1./np.sum(z[mask])
+			#nghat_new = np.sum(y[mask]/y_t[mask])*1./np.sum(z[mask])
+			#nghat_old = np.sum(y[mask])*1./np.sum(z[mask])
 			
 			#Modify the means and the errorbars of the raw measurements
-			bin_means = bin_means/nghat_old/bin_fmeans
-			bin_errors = bin_errors/nghat_old/bin_fmeans
+			#bin_means = bin_means/bin_fmeans
+			#bin_errors = bin_errors/bin_fmeans
 			
 			#Modify the means and the errorbars of the corrected measurements
-			bin_means_corr = bin_means_corr/nghat_new/bin_fmeans
-			bin_errors_corr = bin_errors_corr/nghat_new/bin_fmeans
+			#bin_means_corr = bin_means_corr/bin_fmeans
+			#bin_errors_corr = bin_errors_corr/bin_fmeans
 			
 			# Compute the bin centers for plotting
 			bin_centers = .5*(bin_edges[1:]+bin_edges[:-1])
@@ -234,11 +242,11 @@ def plot_ngal(ngal_pred, ngal_norm, pixel_data, pixel_fraction, nbins, percut, a
 		plt.show()
 	
 	
-#plot_ngal(linreg_pred, Y, X, Z, nbins=5, percut = [2, 98], average_mode = "mean", title='sys_ngal_corr')
-plot_ngal(linreg_pred, Y, X, Z, nbins=5, percut = [2, 98], average_mode = "mean")
+plot_ngal(linreg_pred, Y, X, Z, nbins=5, percut = [2, 98], average_mode = "mean", title='sys_ngal_corr')
+#plot_ngal(linreg_pred, Y, X, Z, nbins=5, percut = [2, 98], average_mode = "mean")
 
 #-- Plots for the z-bins --
-'''
+
 with open(data_dir+'/zbins.pickle', 'rb') as handle:
 	zbins = pickle.load(handle)
 	
@@ -274,6 +282,5 @@ for k in zbins.keys():
 	
 	fig_title = 'sys_ngal_corr_'+zbin_min+'_'+zbin_max
 	plot_ngal(linreg_pred_zbin, Y_zbin, X_zbin, Z_zbin, nbins=5, percut = [2,98], title=fig_title)
-	
 	#plot_2dpred_5(X_zbin, Y_zbin, use_cols[0:5], linreg_pred_zbin)
-'''
+
