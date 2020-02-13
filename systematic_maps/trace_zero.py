@@ -26,10 +26,10 @@ print(data.keys())
 data_RA = np.array(data['RA']).byteswap().newbyteorder()
 data_DEC = np.array(data['DEC']).byteswap().newbyteorder()
 
-data_RA[data_RA > 300] = 360 - data_RA[data_RA > 300] #Correct for 'wrap around'?
+data_RA[data_RA > 300] = data_RA[data_RA > 300] - 360 #Correct for 'wrap around'
 
 
-ngal_fits = hp.fitsfunc.read_map(data_dir+'/ngal_new.fits') #Read in galaxy density map (created in galdens.py)
+ngal_fits = hp.fitsfunc.read_map(data_dir+'/ngal_maps/ngal_new.fits') #Read in galaxy density map (created in galdens.py)
 
 
 print('Obtaining KiDS mask...')

@@ -130,4 +130,14 @@ with open(data_dir+'/pixel_data.pickle', 'wb') as handle:
     
 print('Data saved to {}.'.format(data_dir))
 
+#Write dataframe used for cross correlation (same as pixel_data but keeping track of pixel nums)
+
+new_pixel_mask = np.delete(pixel_mask, rows_containing_nans[rows_containing_nans].index)
+
+dataset_cross_correlation = dataset_frame_filtered.copy()
+dataset_cross_correlation['pixel_idx'] = new_pixel_mask
+
+with open(data_dir+'/cross_correlation_frame.pickle', 'wb') as handle:
+	pickle.dump(dataset_cross_correlation, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
 

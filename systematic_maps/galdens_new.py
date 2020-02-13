@@ -4,6 +4,7 @@ import fitsio
 import h5py
 import matplotlib.pyplot as plt
 import pickle
+import pandas as pd
 
 '''
 This code creates the galaxy density map from the RA and DEC data of the galaxies, as well as the
@@ -11,6 +12,7 @@ galaxy density maps for five redshift bins.
 '''
 
 filename = 'data/shear_dr4.h5'
+data_dir = '/disks/shear12/dombrovskij/systematic_maps/data/'
 
 data = h5py.File(filename, 'r') #read file
 print(data.keys())
@@ -107,6 +109,18 @@ phi = data_RA * np.pi/180.0
 ipix = hp.ang2pix(nside, theta, phi, nest=False) #Convert the angles to which pixel it is on the map
 bc = np.bincount(ipix, minlength=npix) #returns how many 0, how many 1, how many 2, etc., so essentially counts the objects per pixel
 
+'''
+Create Pandas dataframe
+'''
+
+RA_DEC_Frame = pd.DataFrame({'RA':data_RA,'DEC':data_DEC,'theta':theta,'phi':phi,'ipix':ipix})
+
+with open(data_dir+'RA_DEC_FRAME.pickle', 'wb') as handle:
+	pickle.dump(RA_DEC_Frame, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+'''
+Continue creating ngal map
+'''
 print('These two numbers should match:')
 print('Total number of objects in ngal_new.fits: {}'.format(np.sum(bc)))
 print('Total number of objects in catalogue: {}'.format(len(data_RA)))
