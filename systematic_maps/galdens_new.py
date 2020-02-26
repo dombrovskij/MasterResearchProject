@@ -21,6 +21,8 @@ data_RA = np.array(data['RA'])
 data_DEC = np.array(data['DEC'])
 data_z = np.array(data['Z_B'])
 
+print('Number of datapoints: {}'.format(len(data_RA)))
+
 '''
 Divide the data into the five redshift bins and create ngal map for each.
 '''
